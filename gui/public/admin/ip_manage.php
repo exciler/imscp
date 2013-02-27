@@ -256,7 +256,7 @@ function client_registerIp($ipNumber, $domain, $alias, $netcard, $shared)
 	";
 	exec_query($query, array(
 		$ipNumber, idn_to_ascii($domain), idn_to_ascii($alias), $netcard, null,
-		$cfg->ITEM_ADD_STATUS), $shared);
+		$cfg->ITEM_ADD_STATUS, $shared));
 
 	send_request();
 	set_page_message(tr('IP address scheduled for addition.'), 'success');
