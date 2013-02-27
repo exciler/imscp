@@ -93,7 +93,8 @@ function _client_generateIpsList($tpl)
 					 'IP' => $stmt->fields['ip_number'],
 					 'DOMAIN' => tohtml(idn_to_utf8($stmt->fields['ip_domain'])),
 					 'ALIAS' => tohtml(idn_to_utf8($stmt->fields['ip_alias'])),
-					 'NETWORK_CARD' => ($stmt->fields['ip_card'] === NULL) ? '' : tohtml($stmt->fields['ip_card'])));
+					 'NETWORK_CARD' => ($stmt->fields['ip_card'] === NULL) ? '' : tohtml($stmt->fields['ip_card']),
+                     'SHARED' => $stmt->fields['ip_shared'] > 0 ? 'ok' : 'error'));
 
 			$tpl->assign(
 				array(
@@ -237,9 +238,10 @@ function client_checkIpData($ipNumber, $domain, $alias, $netcard)
  * @param string $domain Domain
  * @param string $alias Alias
  * @param string $netcard Network card
+ * @param bool $shared Shared usage
  * @return void
  */
-function client_registerIp($ipNumber, $domain, $alias, $netcard)
+function client_registerIp($ipNumber, $domain, $alias, $netcard, $shared)
 {
 	/** @var $cfg iMSCP_Config_Handler_File */
 	$cfg = iMSCP_Registry::get('config');
@@ -247,14 +249,14 @@ function client_registerIp($ipNumber, $domain, $alias, $netcard)
 	$query = "
 		INSERT INTO `server_ips` (
 			`ip_number`, `ip_domain`, `ip_alias`, `ip_card`, `ip_ssl_domain_id`,
-			`ip_status`
+			`ip_status`, `ip_shared`
 		) VALUES (
-			?, ?, ?, ?, ?, ?
+			?, ?, ?, ?, ?, ?, ?
 		)
 	";
 	exec_query($query, array(
 		$ipNumber, idn_to_ascii($domain), idn_to_ascii($alias), $netcard, null,
-		$cfg->ITEM_ADD_STATUS));
+		$cfg->ITEM_ADD_STATUS), $shared);
 
 	send_request();
 	set_page_message(tr('IP address scheduled for addition.'), 'success');
@@ -284,9 +286,10 @@ if (!empty($_POST)) {
 	$domain = isset($_POST['domain']) ? clean_input($_POST['domain']) : '';
 	$alias = isset($_POST['alias']) ? clean_input($_POST['alias']) : '';
 	$netCard = isset($_POST['ip_card']) ? clean_input($_POST['ip_card']) : '';
+    $shared = isset($_POST['ip_shared']);
 
-	if (client_checkIpData($ipNumber, $domain, $alias, $netCard)) {
-		client_registerIp($ipNumber, $domain, $alias, $netCard);
+	if (client_checkIpData($ipNumber, $domain, $alias, $netCard, $shared)) {
+		client_registerIp($ipNumber, $domain, $alias, $netCard, $shared);
 	}
 }
 
@@ -314,6 +317,7 @@ $tpl->assign(
 		'TR_STATUS' => tr('Status'),
 		'TR_ACTION' => tr('Action'),
 		'TR_NETWORK_CARD' => tr('Network interface'),
+        'TR_SHARED' => tr('Shared'),
 		'TR_ADD' => tr('Add'),
         'TR_CANCEL' => tr('Cancel'),
 		'TR_CONFIGURED_IPS' => tr('IP addresses configured'),

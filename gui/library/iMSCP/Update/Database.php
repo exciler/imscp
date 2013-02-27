@@ -1812,4 +1812,17 @@ class iMSCP_Update_Database extends iMSCP_Update
 			"UPDATE `hosting_plans` SET `payment`='monthly' WHERE `payment` NOT IN('monthly','annually','biennially', 'triennially')"
 		);
 	}
+
+    /**
+     * Update for the hosting_plan table structure
+     *
+     * @author Andreas Palm <andi@andipalm.de>
+     * @return array SQL Queries to execute
+     */
+    protected function _databaseUpdate_400()
+    {
+        return array(
+            $this->_addColumn('server_ips', 'ip_shared', "TINYINT(1) UNSIGNED NOT NULL DEFAULT 1"),
+        );
+    }
 }

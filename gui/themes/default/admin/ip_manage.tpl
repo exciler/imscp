@@ -32,6 +32,7 @@
 					<th>{TR_DOMAIN}</th>
 					<th>{TR_ALIAS}</th>
 					<th>{TR_NETWORK_CARD}</th>
+                    <th>{TR_SHARED}</th>
 					<th>{TR_ACTION}</th>
 				</tr>
 				</thead>
@@ -42,6 +43,7 @@
 					<td>{DOMAIN}</td>
 					<td>{ALIAS}</td>
 					<td>{NETWORK_CARD}</td>
+                    <td><span class="icon i_{SHARED}"></span></td>
 					<td>
 						<a class="icon i_delete" href="{ACTION_URL}" onclick="return confirm_deletion('{IP}')" title="{ACTION_NAME}" class="{STATUS}">{ACTION_NAME}</a>
 					</td>
@@ -82,6 +84,10 @@
 							</select>
 						</td>
 					</tr>
+                    <tr>
+                        <td><label for="ip_shared">{TR_SHARED}</label></td>
+                        <td><input type="checkbox" name="ip_shared" id="ip_shared" /></td>
+                    </tr>
 				</table>
 				<div class="buttons">
 					<button name="submit" type="submit" class="frm-button">{TR_ADD}</button>
