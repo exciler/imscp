@@ -105,7 +105,7 @@ function &admin_getData($resellerId, $forUpdate = false)
 		             AND a.`admin_type`='reseller'
 		             AND iua.`ip_id`=`server_ips`.`ip_id`)
 		          ORDER BY `ip_number`";
-		$stmt = exec_query($query);
+		$stmt = exec_query($query, $resellerId);
 
 		if ($stmt->rowCount()) {
 			$data['server_ips'] = $stmt->fetchAll();
