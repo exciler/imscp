@@ -90,7 +90,21 @@ function &admin_getData($resellerId, $forUpdate = false)
 		// Ip data begin
 
 		// Fetch server ip list
-		$query = "SELECT `ip_id`, `ip_number`, `ip_domain` FROM `server_ips`  ORDER BY `ip_number`";
+		$query = "SELECT `ip_id`, `ip_number`, `ip_domain`, `ip_shared`
+		          FROM `server_ips`
+		          WHERE `ip_shared`=1
+		          OR EXISTS
+		            (SELECT `id`
+		             FROM `ip_user_assignment` as iua
+		             WHERE iua.`ip_id`=`server_ips`.`ip_id`
+		             AND iua.`user_id` = ?)
+		          OR NOT EXISTS
+		            (SELECT `id`
+		             FROM `ip_user_assignment` as iua, `admin` as a
+		             WHERE iua.`user_id`=a.`admin_id`
+		             AND a.`admin_type`='reseller'
+		             AND iua.`ip_id`=`server_ips`.`ip_id`)
+		          ORDER BY `ip_number`";
 		$stmt = exec_query($query);
 
 		if ($stmt->rowCount()) {
@@ -205,6 +219,7 @@ function _admin_generateIpListForm($tpl, &$data)
 		array(
 			'TR_IP_ADDRESS' => tr('IP address'),
 			'TR_IP_LABEL' => tr('Label'),
+            'TR_IP_SHARED' => tr('Shared'),
 			'TR_ASSIGN' => tr('Assign'),
 			'TR_STATUS' => tr('Usage status'),
 			'DATATABLE_TRANSLATIONS' => getDataTablesPluginTranslations()
@@ -220,6 +235,7 @@ function _admin_generateIpListForm($tpl, &$data)
 				'IP_ID' => tohtml($ipData['ip_id']),
 				'IP_NUMBER' => tohtml($ipData['ip_number']),
 				'IP_DOMAIN' => tohtml(idn_to_utf8($ipData['ip_domain'])),
+                'IP_SHARED' => $ipData['ip_shared'] ? 'ok' : 'error',
 				'IP_ASSIGNED' => ($resellerHasIp) ? $htmlChecked : '',
 				'IP_STATUS' => ($isUsedIp) ? $assignedTranslation : $unusedTranslation,
 				'IP_READONLY' => ($isUsedIp) ? $htmlDisabled : ''
@@ -701,7 +717,23 @@ function admin_checkAndUpdateData($resellerId)
 			";
 			exec_query($query, $bindParams);
 
-			// Update reseller properties
+			// Update reseller ip assignments
+            $query = 'DELETE FROM `ip_user_assignment`
+              WHERE `user_id` = ?
+              AND `ip_id` NOT IN (?)';
+            exec_query($query, array($resellerId, implode(',', $resellerIps)));
+
+            $values = array();
+            foreach ($resellerIps as $ip)
+                $values[] = '('.$resellerId.','.$ip.')';
+
+            $query = 'INSERT IGNORE INTO `ip_user_assignment`
+                      (`user_id`, `ip_id`)
+                      VALUES '.implode(',', $values);
+            exec_query($query);
+
+
+            // Update reseller properties
 
 			$query = '
 				UPDATE

@@ -156,6 +156,7 @@
 					<tr>
 						<th>{TR_IP_ADDRESS}</th>
 						<th>{TR_IP_LABEL}</th>
+                        <th>{TR_SHARED}</th>
 						<th>{TR_ASSIGN}</th>
 					</tr>
 				</thead>
@@ -164,6 +165,7 @@
 					<tr>
 						<td>{IP_NUMBER}</td>
 						<td><label for="ip_{IP_ID}">{IP_DOMAIN}</label></td>
+                        <td><span class="icon i_{IP_SHARED}"></span></td>
 						<td><input type="checkbox" id="ip_{IP_ID}" name="reseller_ips[]" value="{IP_ID}" {IP_ASSIGNED} /></td>
 					</tr>
 					<!-- EDP: ip_block -->

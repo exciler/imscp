@@ -51,7 +51,16 @@ function &admin_getData()
 	if (null === $data) {
 
 		// Fetch server ip list
-		$query = "SELECT `ip_id`, `ip_number`, `ip_domain` FROM `server_ips`  ORDER BY `ip_number`";
+		$query = "SELECT `ip_id`, `ip_number`, `ip_domain`, `ip_shared`
+		          FROM `server_ips`
+		          WHERE `ip_shared`=1
+		          OR NOT EXISTS
+		            (SELECT `ip_id`
+		             FROM `ip_user_assignment` as iua, `admin` as a
+		             WHERE iua.`user_id`=a.`admin_id`
+		             AND a.`admin_type`='reseller'
+		             AND iua.`ip_id`=`server_ips`.`ip_id`)
+		          ORDER BY `ip_number`";
 		$stmt = exec_query($query);
 
 		if ($stmt->rowCount()) {
@@ -172,6 +181,7 @@ function _admin_generateIpListForm($tpl, &$data)
 		array(
 			 'TR_IP_ADDRESS' => tr('IP address'),
 			 'TR_IP_LABEL' => tr('Label'),
+             'TR_IP_SHARED' => tr('Shared'),
 			 'TR_ASSIGN' => tr('Assign'),
 			 'DATATABLE_TRANSLATIONS' => getDataTablesPluginTranslations()));
 
@@ -181,6 +191,7 @@ function _admin_generateIpListForm($tpl, &$data)
 				 'IP_ID' => tohtml($ipData['ip_id']),
 				 'IP_NUMBER' => tohtml($ipData['ip_number']),
 				 'IP_DOMAIN' => tohtml(idn_to_utf8($ipData['ip_domain'])),
+                 'IP_SHARED' => $ipData['ip_shared'] ? 'ok' : 'error',
 				 'IP_ASSIGNED' => in_array($ipData['ip_id'], $data['reseller_ips']) ? $htmlChecked : ''));
 
 		$tpl->parse('IP_BLOCK', '.ip_block');
@@ -578,6 +589,15 @@ function admin_checkAndCreateResellerAccount()
 			$query = 'REPLACE INTO `user_gui_props` (`user_id`, `lang`, `layout`) VALUES (?, ?, ?)';
 			exec_query($query, array($resellerId, $cfg->USER_INITIAL_LANG, $cfg->USER_INITIAL_THEME));
 
+            // Insert reseller ip assignments
+            $values = array();
+            foreach ($resellerIps as $ip)
+                $values[] = '('.$resellerId.','.$ip.')';
+
+            $query = 'INSERT IGNORE INTO `ip_user_assignment`
+                      (`user_id`, `ip_id`)
+                      VALUES '.implode(',', $values);
+            exec_query($query);
 
 			// Insert reseller properties into database
 

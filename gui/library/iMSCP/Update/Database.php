@@ -1819,10 +1819,29 @@ class iMSCP_Update_Database extends iMSCP_Update
      * @author Andreas Palm <andi@andipalm.de>
      * @return array SQL Queries to execute
      */
-    protected function _databaseUpdate_400()
+    protected function _databaseUpdate_122()
     {
         return array(
             $this->_addColumn('server_ips', 'ip_shared', "TINYINT(1) UNSIGNED NOT NULL DEFAULT 1"),
+        );
+    }
+    protected function _databaseUpdate_401()
+    {
+        return array(
+            "CREATE TABLE `ip_user_assignment` (
+                `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+                `user_id` INT UNSIGNED NOT NULL,
+                `ip_id` INT UNSIGNED NOT NULL,
+                PRIMARY KEY (`id`),
+                UNIQUE (`user_id`, `ip_id`)
+             ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci",
+            "CREATE TABLE `ip_domain_assignment` (
+                `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+                `domain_id` INT UNSIGNED NOT NULL,
+                `ip_id` INT UNSIGNED NOT NULL,
+                PRIMARY KEY (`id`),
+                UNIQUE (`domain_id`, `ip_id`)
+             ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci"
         );
     }
 }
