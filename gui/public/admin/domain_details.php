@@ -65,7 +65,7 @@ function admin_generatePage($tpl, $domainId)
 
 	// Domain IP address info
 	$stmt = exec_query(
-		"SELECT `ip_number`, `ip_domain`  FROM `ip_domain_assignment` ida, `server_ips` si WHERE ida.`ip_id` = ? AND si.`ip_id = ida.`ip_id`", $domainId
+		"SELECT `ip_number`, `ip_domain`  FROM `ip_domain_assignment` ida, `server_ips` si WHERE ida.`ip_id` = ? AND si.`ip_id` = ida.`ip_id`", $domainId
 	);
 
     $domainIpAddr = array();
