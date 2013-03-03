@@ -65,14 +65,15 @@ function admin_generatePage($tpl, $domainId)
 
 	// Domain IP address info
 	$stmt = exec_query(
-		"SELECT `ip_number`, `ip_domain`  FROM `server_ips` WHERE `ip_id` = ?", $domainProperties['domain_ip_id']
+		"SELECT `ip_number`, `ip_domain`  FROM `ip_domain_assignment` ida, `server_ips` si WHERE ida.`ip_id` = ? AND si.`ip_id = ida.`ip_id`", $domainId
 	);
 
-	if (!$stmt->rowCount()) {
-		$domainIpAddr = tr('No found.');
-	} else {
-		$domainIpAddr = "{$stmt->fields['ip_number']} " . (($stmt->fields['ip_domain']) ? "({$stmt->fields['ip_domain']})" : '');
-	}
+    $domainIpAddr = array();
+    if ($stmt->rowCount()) {
+        while (!$stmt->EOF) {
+            $domainIpAddr[] = $stmt->fields['ip_number'].($stmt->fields['ip_domain'] ? ' ('.$stmt->fields['ip_domain'].')' : '');
+        }
+    }
 
 	$domainStatus = $domainProperties['domain_status'];
 
@@ -131,7 +132,7 @@ function admin_generatePage($tpl, $domainId)
 		array(
 			'DOMAIN_ID' => $domainId,
 			'VL_DOMAIN_NAME' => tohtml(decode_idna($domainProperties['domain_name'])),
-			'VL_DOMAIN_IP' => tohtml($domainIpAddr),
+			'VL_DOMAIN_IP' => tohtml(implode(',', $domainIpAddr)),
 			'VL_STATUS' => $domainStatus,
 			'VL_PHP_SUPP' => ($domainProperties['domain_php'] == 'yes') ? $trEnabled : $trDisabled,
 			'VL_CGI_SUPP' => ($domainProperties['domain_cgi'] == 'yes') ? $trEnabled : $trDisabled,

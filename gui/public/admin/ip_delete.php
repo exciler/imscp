@@ -55,16 +55,11 @@ if (!isset($_GET['delete_id'])) {
 
 $deleteIpId = (int) $_GET['delete_id'];
 
-$query = "SELECT `reseller_ips` FROM `reseller_props`";
-$stmt = execute_query($query);
-
-while(!$stmt->EOF) {
-	if(in_array($deleteIpId, explode(';', $stmt->fields['reseller_ips']))) {
-		set_page_message(tr('The IP address you trying to remove is assigned to a reseller.'), 'error');
-        redirectTo('ip_manage.php');
-	}
-
-	$stmt->moveNext();
+$query = "SELECT `id` FROM `ip_user_assignment` WHERE `ip_id` = ?";
+$stmt = execute_query($query, $deleteIpId);
+if ($stmt->rowCount() > 0) {
+	set_page_message(tr('The IP address you trying to remove is assigned to a reseller.'), 'error');
+    redirectTo('ip_manage.php');
 }
 
 $query = "SELECT count(`ip_id`) `ipsTotalCount` FROM `server_ips`";
