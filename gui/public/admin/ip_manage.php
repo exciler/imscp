@@ -79,32 +79,23 @@ function _client_generateIpsList($tpl)
 	/** @var $cfg iMSCP_Config_Handler_File */
 	$cfg = iMSCP_Registry::get('config');
 
-	$query = "SELECT * FROM `server_ips`";
-	$stmt = execute_query($query);
+    $ipRepo = new \iMSCP\Repository\IpRepository();
+    $ips = $ipRepo->findAll();
 
-	if ($stmt->rowCount()) {
-		while (!$stmt->EOF) {
-			list(
-				$actionName, $actionUrl
-			) = _client_generateIpAction($stmt->fields['ip_id'], $stmt->fields['ip_status']);
-
-			$tpl->assign(
-				array(
-					 'IP' => $stmt->fields['ip_number'],
-					 'DOMAIN' => tohtml(idn_to_utf8($stmt->fields['ip_domain'])),
-					 'ALIAS' => tohtml(idn_to_utf8($stmt->fields['ip_alias'])),
-					 'NETWORK_CARD' => ($stmt->fields['ip_card'] === NULL) ? '' : tohtml($stmt->fields['ip_card']),
-                     'SHARED' => $stmt->fields['ip_shared'] > 0 ? 'ok' : 'error'));
-
-			$tpl->assign(
-				array(
-					 'ACTION_NAME' => ($cfg->BASE_SERVER_IP == $stmt->fields['ip_number']) ? tr('Protected') : $actionName,
-					 'ACTION_URL' => ($cfg->BASE_SERVER_IP == $stmt->fields['ip_number']) ? '#' : $actionUrl));
-
-			$tpl->parse('IP_ADDRESS_BLOCK', '.ip_address_block');
-			$stmt->moveNext();
-		}
-	} else { // Should never occur but who knows.
+    if (count($ips)) {
+        foreach ($ips as $ip) {
+            list($actionName, $actionUrl) = _client_generateIpAction($ip->Id, $ip->Status);
+            $tpl->assign(array(
+                 'IP' => $ip->Address,
+                 'DOMAIN' => tohtml(idn_to_utf8($ip->DomainName)),
+                 'ALIAS' => tohtml(idn_to_utf8($ip->Alias)),
+                 'NETWORK_CARD' => ($ip->NetworkCard === NULL) ? '' : tohtml($ip->NetworkCard),
+                 'SHARED' => $ip->Shared > 0 ? 'ok' : 'error',
+                 'ACTION_NAME' => ($cfg->BASE_SERVER_IP == $ip->Address) ? tr('Protected') : $actionName,
+                 'ACTION_URL' => ($cfg->BASE_SERVER_IP == $ip->Address) ? '#' : $actionUrl));
+            $tpl->parse('IP_ADDRESS_BLOCK', '.ip_address_block');
+        }
+    } else { // Should never occur but who knows.
 		$tpl->assign('IP_ADDRESSES_BLOCK', '');
 		set_page_message(tr('No IP address found.'), 'info');
 	}
@@ -231,39 +222,6 @@ function client_checkIpData($ipNumber, $domain, $alias, $netcard)
 	return true;
 }
 
-/**
- * Register new IP.
- *
- * @param string $ipNumber IP number (dot notation)
- * @param string $domain Domain
- * @param string $alias Alias
- * @param string $netcard Network card
- * @param bool $shared Shared usage
- * @return void
- */
-function client_registerIp($ipNumber, $domain, $alias, $netcard, $shared)
-{
-	/** @var $cfg iMSCP_Config_Handler_File */
-	$cfg = iMSCP_Registry::get('config');
-
-	$query = "
-		INSERT INTO `server_ips` (
-			`ip_number`, `ip_domain`, `ip_alias`, `ip_card`, `ip_ssl_domain_id`,
-			`ip_status`, `ip_shared`
-		) VALUES (
-			?, ?, ?, ?, ?, ?, ?
-		)
-	";
-	exec_query($query, array(
-		$ipNumber, idn_to_ascii($domain), idn_to_ascii($alias), $netcard, null,
-		$cfg->ITEM_ADD_STATUS, $shared));
-
-	send_request();
-	set_page_message(tr('IP address scheduled for addition.'), 'success');
-	write_log("IP address {$ipNumber} was added by {$_SESSION['user_logged']}", E_USER_NOTICE);
-	redirectTo('ip_manage.php');
-}
-
 /************************************************************************************
  * Main script
  */
@@ -282,15 +240,20 @@ $cfg = iMSCP_Registry::get('config');
 iMSCP_Registry::set('networkCardObject', new iMSCP_NetworkCard());
 
 if (!empty($_POST)) {
-	$ipNumber = isset($_POST['ip_number']) ? trim($_POST['ip_number']) : '';
-	$domain = isset($_POST['domain']) ? clean_input($_POST['domain']) : '';
-	$alias = isset($_POST['alias']) ? clean_input($_POST['alias']) : '';
-	$netCard = isset($_POST['ip_card']) ? clean_input($_POST['ip_card']) : '';
-    $shared = isset($_POST['ip_shared']);
+    $ip = new \iMSCP\Entity\Ip();
+    $ip->Address = isset($_POST['ip_number']) ? trim($_POST['ip_number']) : '';
+	$ip->DomainName = isset($_POST['domain']) ? clean_input($_POST['domain']) : '';
+	$ip->Alias = isset($_POST['alias']) ? clean_input($_POST['alias']) : '';
+	$ip->NetworkCard = isset($_POST['ip_card']) ? clean_input($_POST['ip_card']) : '';
+    $ip->Shared = isset($_POST['ip_shared']);
 
-	if (client_checkIpData($ipNumber, $domain, $alias, $netCard, $shared)) {
-		client_registerIp($ipNumber, $domain, $alias, $netCard, $shared);
-	}
+	if (client_checkIpData($ip->Address, $ip->DomainName, $ip->Alias, $ip->NetworkCard, $ip->Shared)) {
+		$ip->insert();
+        send_request();
+        set_page_message(tr('IP address scheduled for addition.'), 'success');
+        write_log("IP address {$ip->Address} was added by {$_SESSION['user_logged']}", E_USER_NOTICE);
+        redirectTo('ip_manage.php');
+    }
 }
 
 $tpl = new iMSCP_pTemplate();
